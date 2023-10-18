@@ -10,14 +10,14 @@ export interface PostOptions {
 export interface PostDoc extends BaseDoc {
   author: ObjectId;
   content: string;
-  options?: PostOptions;
+  songId: string;
 }
 
 export default class PostConcept {
   public readonly posts = new DocCollection<PostDoc>("posts");
 
-  async create(author: ObjectId, content: string, options?: PostOptions) {
-    const _id = await this.posts.createOne({ author, content, options });
+  async create(author: ObjectId, content: string, songId: string) {
+    const _id = await this.posts.createOne({ author, content, songId });
     return { msg: "Post successfully created!", post: await this.posts.readOne({ _id }) };
   }
 
@@ -55,7 +55,7 @@ export default class PostConcept {
 
   private sanitizeUpdate(update: Partial<PostDoc>) {
     // Make sure the update cannot change the author.
-    const allowedUpdates = ["content", "options"];
+    const allowedUpdates = ["content", "sampleStart", "sampleEnd"];
     for (const key in update) {
       if (!allowedUpdates.includes(key)) {
         throw new NotAllowedError(`Cannot update '${key}' field!`);

@@ -6,12 +6,14 @@ import { useUserStore } from "@/stores/user";
 import { fetchy } from "@/utils/fetchy";
 import { storeToRefs } from "pinia";
 import { onBeforeMount, ref } from "vue";
+import { SongData, getSongBySpotifyId } from "../../utils/musicResource";
 import SearchPostForm from "./SearchPostForm.vue";
 
 const { isLoggedIn } = storeToRefs(useUserStore());
 
 const loaded = ref(false);
 let posts = ref<Array<Record<string, string>>>([]);
+let tracks = ref<Array<SongData>>([]);
 let editing = ref("");
 let searchAuthor = ref("");
 
@@ -27,12 +29,15 @@ async function getPosts(author?: string) {
   posts.value = postResults;
 }
 
+const getAlbumArt = async () => (tracks.value = await Promise.all(posts.value.map((post) => getSongBySpotifyId(post.songId))));
+
 function updateEditing(id: string) {
   editing.value = id;
 }
 
 onBeforeMount(async () => {
   await getPosts();
+  await getAlbumArt();
   loaded.value = true;
 });
 </script>
@@ -48,8 +53,8 @@ onBeforeMount(async () => {
     <SearchPostForm @getPostsByAuthor="getPosts" />
   </div>
   <section class="posts" v-if="loaded && posts.length !== 0">
-    <article v-for="post in posts" :key="post._id">
-      <PostComponent v-if="editing !== post._id" :post="post" @refreshPosts="getPosts" @editPost="updateEditing" />
+    <article v-for="(post, idx) in posts" :key="post._id">
+      <PostComponent v-if="editing !== post._id" :post="post" :track="tracks[idx]" @refreshPosts="getPosts" @editPost="updateEditing" />
       <EditPostForm v-else :post="post" @refreshPosts="getPosts" @editPost="updateEditing" />
     </article>
   </section>
@@ -78,10 +83,13 @@ article {
   flex-direction: column;
   gap: 0.5em;
   padding: 1em;
+  width: 80vw;
+  max-width: 36em;
 }
 
 .posts {
   padding: 1em;
+  align-items: center;
 }
 
 .row {
