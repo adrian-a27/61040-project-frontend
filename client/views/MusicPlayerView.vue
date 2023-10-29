@@ -20,7 +20,7 @@ const getUserStatus = async () => {
     return;
   }
   status.value = statusResult;
-  status.value.user = currentUsername;
+  status.value.user = currentUsername.value;
   track.value = await getSongBySpotifyId(status.value.songId);
 };
 

@@ -55,7 +55,7 @@ async function setupPostTheme() {
   Array.from(post.getElementsByClassName("btn-small")).map((el) => assignButtonColor(el as HTMLElement));
   const playbackButton: HTMLButtonElement = document.querySelector("#playback-button-" + props.post._id)!;
 
-  const userIcon: HTMLElement = Array.from(post.getElementsByClassName("user-icon"))[0];
+  const userIcon = Array.from(post.getElementsByClassName("user-icon"))[0] as HTMLDivElement;
   userIcon.style.backgroundColor = hexFromArgb(scheme.value.tertiaryContainer);
   userIcon.style.color = hexFromArgb(scheme.value.onTertiaryContainer);
 

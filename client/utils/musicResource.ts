@@ -7,6 +7,15 @@ export type SongData = {
   id: string;
 };
 
+type ApiResponse = {
+  name: string;
+  album: { name: string; images: { url: string }[] };
+  artists: { name: string }[];
+  image: string;
+  preview_url: string;
+  id: string;
+};
+
 type AuthToken = { token: string; accessDate: Date };
 
 // API Constants
@@ -58,7 +67,7 @@ export async function searchSongs(query: string): Promise<SongData[]> {
 
   const results = (await response.json()).tracks.items;
 
-  return results.map((item) => ({
+  return results.map((item: ApiResponse) => ({
     songTitle: item.name,
     albumName: item.album.name,
     artists: item.artists.map((artistObj) => artistObj.name).join(", "),
@@ -85,7 +94,7 @@ export async function getSongBySpotifyId(spotifyId: string): Promise<SongData> {
     throw new Error(response.statusText);
   }
 
-  const track = await response.json();
+  const track = (await response.json()) as ApiResponse;
   return {
     songTitle: track.name,
     albumName: track.album.name,

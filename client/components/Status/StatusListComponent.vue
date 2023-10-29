@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import StatusComponent from "@/components/Status/StatusComponent.vue";
-import { useUserStore } from "@/stores/user";
 import { fetchy } from "@/utils/fetchy";
 import { SongData, getSongBySpotifyId } from "@/utils/musicResource";
-import { storeToRefs } from "pinia";
 import { defineExpose, onBeforeMount, ref } from "vue";
-
-const { isLoggedIn } = storeToRefs(useUserStore());
 
 const loaded = ref(false);
 let statuses = ref<Array<Record<string, string>>>([]);
@@ -15,7 +11,7 @@ let tracks = ref<Array<SongData>>([]);
 async function getStatuses() {
   let statusResults;
   try {
-    statusResults = (await fetchy("/api/status/feed", "GET")).filter((status) => status.songId !== "");
+    statusResults = (await fetchy("/api/status/feed", "GET")).filter((status: { songId: string }) => status.songId !== "");
   } catch (_) {
     return;
   }
