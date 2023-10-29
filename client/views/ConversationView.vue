@@ -123,7 +123,7 @@ const sendSong = async () => {
     <section v-if="loaded && threadData.messages.length !== 0" class="message-bubbles">
       <article v-for="m in threadData.messages" :key="m._id">
         <SongResultEntry
-          v-if="m.content.id !== undefined"
+          v-if="m.content.hasOwnProperty('id')"
           class="song-bubble message-bubble"
           :class="m.sender === currentUsername ? 'user-message' : 'other-message'"
           :songResult="m.content as SongData"
