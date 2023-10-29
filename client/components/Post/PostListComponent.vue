@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import CreatePostForm from "@/components/Post/CreatePostForm.vue";
 import EditPostForm from "@/components/Post/EditPostForm.vue";
 import PostComponent from "@/components/Post/PostComponent.vue";
 import { useUserStore } from "@/stores/user";
 import { fetchy } from "@/utils/fetchy";
+import { SongData, getSongBySpotifyId } from "@/utils/musicResource";
 import { storeToRefs } from "pinia";
-import { onBeforeMount, ref } from "vue";
-import { SongData, getSongBySpotifyId } from "../../utils/musicResource";
-import SearchPostForm from "./SearchPostForm.vue";
+import { defineExpose, onBeforeMount, ref } from "vue";
 
 const { isLoggedIn } = storeToRefs(useUserStore());
 
@@ -17,45 +15,44 @@ let tracks = ref<Array<SongData>>([]);
 let editing = ref("");
 let searchAuthor = ref("");
 
-async function getPosts(author?: string) {
-  let query: Record<string, string> = author !== undefined ? { author } : {};
+async function getFollowingPosts(author?: string) {
   let postResults;
   try {
-    postResults = await fetchy("/api/posts", "GET", { query });
+    postResults = await fetchy("/api/posts/feed", "GET");
   } catch (_) {
     return;
   }
   searchAuthor.value = author ? author : "";
+  tracks.value = await Promise.all(postResults.map((post: Record<string, string>) => getSongBySpotifyId(post.songId)));
   posts.value = postResults;
 }
 
-const getAlbumArt = async () => (tracks.value = await Promise.all(posts.value.map((post) => getSongBySpotifyId(post.songId))));
-
-function updateEditing(id: string) {
+const updateEditing = (id: string) => {
   editing.value = id;
-}
+};
+
+const pausePlayingAudio = (playingId: string) =>
+  Array.from(document.getElementsByClassName("post-audio")).map((audioElement) => {
+    if (audioElement.id != "audio-source-" + playingId) (audioElement as HTMLAudioElement).pause();
+  });
 
 onBeforeMount(async () => {
-  await getPosts();
-  await getAlbumArt();
-  loaded.value = true;
+  await getFollowingPosts().then(() => (loaded.value = true));
 });
+
+defineExpose({ getFollowingPosts });
 </script>
 
 <template>
-  <section v-if="isLoggedIn">
-    <h2>Create a post:</h2>
-    <CreatePostForm @refreshPosts="getPosts" />
-  </section>
-  <div class="row">
+  <!-- <div class="row">
     <h2 v-if="!searchAuthor">Posts:</h2>
     <h2 v-else>Posts by {{ searchAuthor }}:</h2>
     <SearchPostForm @getPostsByAuthor="getPosts" />
-  </div>
+  </div> -->
   <section class="posts" v-if="loaded && posts.length !== 0">
-    <article v-for="(post, idx) in posts" :key="post._id">
-      <PostComponent v-if="editing !== post._id" :post="post" :track="tracks[idx]" @refreshPosts="getPosts" @editPost="updateEditing" />
-      <EditPostForm v-else :post="post" @refreshPosts="getPosts" @editPost="updateEditing" />
+    <article v-for="(post, idx) in posts" :key="post._id" :id="'post-' + post._id">
+      <PostComponent v-if="editing !== post._id" :post="post" :track="tracks[idx]" @refreshPosts="getFollowingPosts" @editPost="updateEditing" @playing-audio="pausePlayingAudio" />
+      <EditPostForm v-else :post="post" @refreshPosts="getFollowingPosts" @editPost="updateEditing" />
     </article>
   </section>
   <p v-else-if="loaded">No posts found</p>
@@ -77,7 +74,8 @@ p,
 }
 
 article {
-  background-color: var(--base-bg);
+  background-color: var(--primary-container);
+  color: var(--on-primary-container);
   border-radius: 1em;
   display: flex;
   flex-direction: column;

@@ -27,12 +27,14 @@ const deleteResult = () => emit("deleteResult");
 
 <style scoped>
 .card {
-  background-color: white;
   border-radius: 8px;
   margin-bottom: 8px;
   align-items: center;
   display: flex;
   padding: 8px;
+
+  background-color: var(--primary-container);
+  color: var(--on-primary-container);
 }
 
 .album-art {
@@ -48,10 +50,17 @@ const deleteResult = () => emit("deleteResult");
 
 .deselect-button {
   border: none;
-  background-color: white;
+  height: 40px;
+  width: 40px;
+  border-radius: 100%;
+  padding: 8px;
+  margin: 4px;
+  font-size: 24px;
+
   cursor: pointer;
-  height: 35px;
-  border-radius: 50%;
+
+  background-color: var(--primary);
+  color: var(--on-primary);
 }
 
 .deselect-button:hover {

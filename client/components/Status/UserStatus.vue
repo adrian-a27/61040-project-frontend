@@ -3,30 +3,13 @@ import { useUserStore } from "@/stores/user";
 import { fetchy } from "@/utils/fetchy";
 import { hexFromArgb, themeFromImage, themeFromSourceColor } from "@material/material-color-utilities";
 import { storeToRefs } from "pinia";
-import { onMounted, ref } from "vue";
+import { onUpdated, ref } from "vue";
 
-const props = defineProps(["post", "track"]);
+const props = defineProps(["status", "track"]);
 const emit = defineEmits(["editPost", "refreshPosts", "playingAudio"]);
 const playbackButtonIcon = ref("play_arrow");
 const scheme = ref(themeFromSourceColor(0).schemes.light);
 const { currentUsername } = storeToRefs(useUserStore());
-
-const deletePost = async () => {
-  try {
-    await fetchy(`/api/posts/${props.post._id}`, "DELETE");
-  } catch {
-    return;
-  }
-  emit("refreshPosts");
-};
-
-const updateStatus = async () => {
-  try {
-    await fetchy(`/api/status/`, "PATCH", { body: { update: { songId: props.track.id } } });
-  } catch (e) {
-    return;
-  }
-};
 
 const assignButtonColor = (button: HTMLElement) => {
   if (button.classList.contains("button-error")) {
@@ -42,37 +25,44 @@ const assignButtonColor = (button: HTMLElement) => {
 };
 
 async function setupPostTheme() {
-  const albumArt = document.getElementById("album-art-" + props.post._id)! as HTMLImageElement;
-
+  const albumArt = document.getElementById("album-art-" + props.status._id)! as HTMLImageElement;
   const theme = await themeFromImage(albumArt);
   const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   scheme.value = systemDark ? theme.schemes.dark : theme.schemes.light;
 
-  const post = document.getElementById("post-" + props.post._id)!;
-  post.style.backgroundColor = hexFromArgb(scheme.value.primaryContainer);
-  post.style.color = hexFromArgb(scheme.value.onPrimaryContainer);
+  const status = document.getElementById("status-" + props.status._id)!;
+  status.style.backgroundColor = hexFromArgb(scheme.value.primaryContainer);
+  status.style.color = hexFromArgb(scheme.value.onPrimaryContainer);
 
-  Array.from(post.getElementsByClassName("btn-small")).map((el) => assignButtonColor(el as HTMLElement));
-  const playbackButton: HTMLButtonElement = document.querySelector("#playback-button-" + props.post._id)!;
+  Array.from(status.getElementsByClassName("btn-small")).map((el) => assignButtonColor(el as HTMLElement));
+  const playbackButton: HTMLButtonElement = document.querySelector("#playback-button-" + props.status._id)!;
 
-  const userIcon: HTMLElement = Array.from(post.getElementsByClassName("user-icon"))[0];
-  userIcon.style.backgroundColor = hexFromArgb(scheme.value.tertiaryContainer);
-  userIcon.style.color = hexFromArgb(scheme.value.onTertiaryContainer);
+  // const userIcon: HTMLElement = Array.from(status.getElementsByClassName("user-icon"))[0];
+  // userIcon.style.backgroundColor = hexFromArgb(scheme.value.tertiaryContainer);
+  // userIcon.style.color = hexFromArgb(scheme.value.onTertiaryContainer);
 
   playbackButton.style.backgroundColor = hexFromArgb(scheme.value.primary);
   playbackButton.style.color = hexFromArgb(scheme.value.onPrimary);
 }
 
-onMounted(async () => {
+onUpdated(async () => {
   await setupPostTheme();
 });
 
+const updateStatus = async () => {
+  try {
+    await fetchy(`/api/status/`, "PATCH", { body: { update: { songId: props.track.id } } });
+  } catch (e) {
+    return;
+  }
+};
+
 const togglePlayback = () => {
-  const music: HTMLAudioElement = document.querySelector("#audio-source-" + props.post._id)!;
-  const playbackButton: HTMLButtonElement = document.querySelector("#playback-button-" + props.post._id)!;
+  const music: HTMLAudioElement = document.querySelector("#audio-source-" + props.status._id)!;
+  const playbackButton: HTMLButtonElement = document.querySelector("#playback-button-" + props.status._id)!;
 
   if (!music.src) {
-    emit("playingAudio", props.post._id);
+    emit("playingAudio", props.status._id);
     playbackButtonIcon.value = "error";
     playbackButton.style.backgroundColor = hexFromArgb(scheme.value.error);
     playbackButton.style.color = hexFromArgb(scheme.value.onError);
@@ -81,15 +71,15 @@ const togglePlayback = () => {
   } else if (music?.classList.contains("active")) {
     music.pause();
   } else {
-    emit("playingAudio", props.post._id);
     void updateStatus();
+    emit("playingAudio", props.status._id);
     void music.play();
   }
 };
 
 const usePlayButton = () => {
-  const music: HTMLAudioElement = document.querySelector("#audio-source-" + props.post._id)!;
-  const playbackButton: HTMLButtonElement = document.querySelector("#playback-button-" + props.post._id)!;
+  const music: HTMLAudioElement = document.querySelector("#audio-source-" + props.status._id)!;
+  const playbackButton: HTMLButtonElement = document.querySelector("#playback-button-" + props.status._id)!;
   playbackButtonIcon.value = "play_arrow";
   playbackButton.style.backgroundColor = hexFromArgb(scheme.value.primary);
   playbackButton.style.color = hexFromArgb(scheme.value.onPrimary);
@@ -97,8 +87,8 @@ const usePlayButton = () => {
 };
 
 const usePauseButton = () => {
-  const music: HTMLAudioElement = document.querySelector("#audio-source-" + props.post._id)!;
-  const playbackButton: HTMLButtonElement = document.querySelector("#playback-button-" + props.post._id)!;
+  const music: HTMLAudioElement = document.querySelector("#audio-source-" + props.status._id)!;
+  const playbackButton: HTMLButtonElement = document.querySelector("#playback-button-" + props.status._id)!;
   playbackButtonIcon.value = "pause";
   playbackButton.style.backgroundColor = hexFromArgb(scheme.value.primary);
   playbackButton.style.color = hexFromArgb(scheme.value.onPrimary);
@@ -107,31 +97,34 @@ const usePauseButton = () => {
 </script>
 
 <template>
-  <div class="post-heading">
-    <div class="user-icon material-symbols-outlined">person</div>
-    <span class="author">{{ props.post.author }}</span>
-    <button type="button" :id="'playback-button-' + props.post._id" class="playback-button material-symbols-outlined" @click="togglePlayback">{{ playbackButtonIcon }}</button>
-    <audio class="post-audio" :id="'audio-source-' + props.post._id" :src="props.post.preview_url ?? props.track.preview_url" @play="usePauseButton" @pause="usePlayButton">
+  <div class="status-content">
+    <img :id="'album-art-' + props.status._id" :src="track.image" class="album-art" crossOrigin="Anonymous" />
+    <span class="song-info">
+      <!-- <div class="album-name">{{ props.track.albumName }}</div> -->
+      <div class="song-title">{{ props.track.songTitle }}</div>
+      <div class="artists">{{ props.track.artists }}</div>
+    </span>
+    <button type="button" :id="'playback-button-' + props.status._id" class="playback-button material-symbols-outlined" @click="togglePlayback">{{ playbackButtonIcon }}</button>
+    <audio class="status-audio" :id="'audio-source-' + props.status._id" :src="props.status.preview_url ?? props.track.preview_url" @play="usePauseButton" @pause="usePlayButton">
       Your browser does not support the audio element.
     </audio>
-  </div>
-  <div class="post-content">
-    <img :id="'album-art-' + props.post._id" :src="track.image" class="album-art" crossOrigin="Anonymous" />
-    <span>{{ props.post.content }}</span>
-  </div>
-  <div class="base">
-    <menu v-if="props.post.author == currentUsername">
-      <li><button class="btn-small pure-button" @click="emit('editPost', props.post._id)">Edit</button></li>
-      <li><button class="button-error btn-small pure-button" @click="deletePost">Delete</button></li>
-    </menu>
-    <!-- <article :id="'a-' + props.post._id" class="timestamp">
-      <p v-if="props.post.dateCreated !== props.post.dateUpdated">Edited on: {{ formatDate(props.post.dateUpdated) }}</p>
-      <p v-else>Created on: {{ formatDate(props.post.dateCreated) }}</p>
-    </article> -->
   </div>
 </template>
 
 <style scoped>
+.album-name {
+  font-size: 0.9em;
+}
+
+.song-title {
+  font-size: 1em;
+  padding: 8px 0px;
+}
+
+.artists {
+  font-size: 0.85em;
+}
+
 .user-icon {
   border: none;
   background-color: var(--tertiary-container);
@@ -147,10 +140,11 @@ p {
   margin: 0em;
 }
 
-.post-heading {
+.status-heading {
   display: flex;
 }
-.author {
+
+.user {
   font-weight: bold;
   font-size: 1.2em;
   width: 100%;
@@ -185,16 +179,21 @@ menu {
   margin: 0;
 }
 
-.post-content {
+.status-content {
   align-items: center;
   display: flex;
 }
 
+.song-info {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
 .album-art {
-  width: 90px;
-  height: 90px;
-  margin-right: 8px;
-  border-radius: 8px;
+  width: 75px;
+  height: 75px;
+  margin-right: 16px;
+  border-radius: 100%;
 }
 
 .timestamp {

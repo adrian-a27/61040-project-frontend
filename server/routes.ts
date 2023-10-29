@@ -119,7 +119,7 @@ class Routes {
   @Router.get("/posts/feed")
   async getAvailablePosts(session: WebSessionDoc) {
     const user = WebSession.getUser(session);
-    return await PostFeed.getAvailable(user, await POST_FEED_FILTER(user), undefined, true);
+    return Responses.posts(await PostFeed.getAvailable(user, await POST_FEED_FILTER(user), undefined, true));
   }
 
   @Router.get("/friends")
@@ -216,18 +216,59 @@ class Routes {
     return await Message.getByUser(user);
   }
 
-  @Router.post("/messages")
-  async sendMessage(session: WebSessionDoc, recipient_usernames: Array<string>, content: string) {
-    const user = WebSession.getUser(session);
-    const recipients: ObjectId[] = [];
+  @Router.get("/messages/conversations")
+  async getUserConversations(session: WebSessionDoc) {
+    type Conversation = {
+      otherUser: string;
+      date: Date;
+      recentMessage: string;
+    };
 
-    for (let i = 0; i < recipient_usernames.length; i++) {
-      const recipient = (await User.getUserByUsername(recipient_usernames[i]))._id;
-      await FollowGraph.areFriends(user, recipient);
-      recipients.push(recipient);
+    const user = await WebSession.getUser(session);
+    const allMessages = await Message.getByUser(user);
+    const seenRecipients = new Set();
+    const conversations: Conversation[] = [];
+
+    for (const message of allMessages) {
+      const otherUser = message.sender.toString() === user.toString() ? message.recipient : message.sender;
+
+      if (!seenRecipients.has(otherUser.toString())) {
+        seenRecipients.add(otherUser.toString());
+        conversations.push({
+          otherUser: (await User.idsToUsernames([otherUser]))[0],
+          date: message.dateCreated,
+          recentMessage: message.content,
+        });
+      }
     }
 
-    return await Message.sendMessage(user, recipients, content);
+    return conversations;
+  }
+
+  @Router.get("/messages/conversations/:otherUser")
+  async getUserConversation(session: WebSessionDoc, otherUser: string) {
+    const user = await WebSession.getUser(session);
+    const otherUserId = (await User.getUserByUsername(otherUser))._id;
+    const messages = await Message.getMessages({
+      $or: [
+        { sender: user, recipient: otherUserId },
+        { sender: otherUserId, recipient: user },
+      ],
+    });
+
+    const idNameMap = new Map<string, string>();
+    idNameMap.set(user.toString(), (await User.getUserById(user)).username);
+    idNameMap.set(otherUserId.toString(), otherUser);
+
+    return messages.map((m) => ({ ...m, sender: idNameMap.get(m.sender.toString()), recipient: idNameMap.get(m.recipient.toString()) }));
+  }
+
+  @Router.post("/messages")
+  async sendMessage(session: WebSessionDoc, recipient_username: string, content: string) {
+    const user = WebSession.getUser(session);
+    const recipient = (await User.getUserByUsername(recipient_username))._id;
+    await FollowGraph.areFriends(user, recipient);
+    return await Message.sendMessage(user, recipient, content);
   }
 
   @Router.patch("/messages/:_id")
@@ -250,17 +291,23 @@ class Routes {
     return await Status.getUserStatus(user);
   }
 
+  @Router.patch("/status")
+  async updateUserStatus(session: WebSessionDoc, update: Partial<PostDoc>) {
+    const user = await WebSession.getUser(session);
+    return await Status.update(user, update);
+  }
+
   @Router.get("/status/feed")
   async getStatuses(session: WebSessionDoc) {
     const user = WebSession.getUser(session);
-    return await StatusFeed.getAvailable(user, await STATUS_FEED_FILTER(user));
+    return Responses.statuses(await StatusFeed.getAvailable(user, await STATUS_FEED_FILTER(user)));
   }
 
   @Router.patch("/music/toggle")
   async togglePlayback(session: WebSessionDoc) {
     const user = WebSession.getUser(session);
     const musicPlayerSuccessMessage = await MusicPlayer.togglePlayback(user);
-    const statusSuccessMessage = await Status.update(user, { content: musicPlayerSuccessMessage.playingSong ?? "" });
+    const statusSuccessMessage = await Status.update(user, { songId: musicPlayerSuccessMessage.playingSong ?? "" });
     musicPlayerSuccessMessage.msg += ` ${statusSuccessMessage.msg}`;
 
     return musicPlayerSuccessMessage;
@@ -272,7 +319,7 @@ class Routes {
     const musicPlayerSuccessMessage = await MusicPlayer.skipForward(user);
 
     if (!(await MusicPlayer.getMusicPlayerByUser(user)).isPlaying) await MusicPlayer.togglePlayback(user);
-    const statusSuccessMessage = await Status.update(user, { content: musicPlayerSuccessMessage.playingSong });
+    const statusSuccessMessage = await Status.update(user, { songId: musicPlayerSuccessMessage.playingSong });
 
     musicPlayerSuccessMessage.msg += ` ${statusSuccessMessage.msg}`;
     return musicPlayerSuccessMessage;
@@ -284,7 +331,7 @@ class Routes {
     const musicPlayerSuccessMessage = await MusicPlayer.skipBackward(user);
 
     if (!(await MusicPlayer.getMusicPlayerByUser(user)).isPlaying) await MusicPlayer.togglePlayback(user);
-    const statusSuccessMessage = await Status.update(user, { content: musicPlayerSuccessMessage.playingSong });
+    const statusSuccessMessage = await Status.update(user, { songId: musicPlayerSuccessMessage.playingSong });
 
     musicPlayerSuccessMessage.msg += ` ${statusSuccessMessage.msg}`;
     return musicPlayerSuccessMessage;
@@ -306,7 +353,7 @@ class Routes {
   async playSong(session: WebSessionDoc, songId: string) {
     const user = WebSession.getUser(session);
     const musicPlayerSuccessMessage = await MusicPlayer.playSong(user, songId);
-    const statusSuccessMessage = await Status.update(user, { content: songId });
+    const statusSuccessMessage = await Status.update(user, { songId: songId });
 
     musicPlayerSuccessMessage.msg += ` ${statusSuccessMessage.msg}`;
     return musicPlayerSuccessMessage;

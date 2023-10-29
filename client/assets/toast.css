@@ -12,8 +12,10 @@
 }
 
 .error {
-  background-color: #fa5252;
+  color: var(--on-error);
+  background-color: var(--error);
 }
+
 .success {
-  background-color: #40c057;
-}
+  color: var(--inverse-on-surface);
+    background-color: var(--inverse-surface);}

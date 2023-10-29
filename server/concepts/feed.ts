@@ -21,10 +21,7 @@ export default class FeedConcept<ContentDoc extends BaseDoc> {
 
   public async getAvailable(user: ObjectId, rule: Filter<ContentDoc>, options?: FindOptions | undefined, shuffle = false) {
     await this.refresh(user, rule, options);
-    console.log(await this.data.readMany(rule));
-    console.log(rule);
     const output = (await this.getFeedByUser(user)).available;
-
     return shuffle ? this.shuffle(output) : output;
   }
 
@@ -42,7 +39,6 @@ export default class FeedConcept<ContentDoc extends BaseDoc> {
   private async refresh(user: ObjectId, rule: Filter<ContentDoc>, options?: FindOptions | undefined) {
     const feed = await this.getFeedByUser(user);
     const _id = feed._id;
-    console.log("in refresh");
     await this.update(_id, { available: (await this.data.readMany(rule, options)).filter((item) => !feed.seen.includes(item)) });
   }
 

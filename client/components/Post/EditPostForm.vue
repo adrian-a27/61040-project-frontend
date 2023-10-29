@@ -1,11 +1,44 @@
 <script setup lang="ts">
+import { hexFromArgb, themeFromImage, themeFromSourceColor } from "@material/material-color-utilities";
 import { ref } from "vue";
 import { fetchy } from "../../utils/fetchy";
 import { formatDate } from "../../utils/formatDate";
 
 const props = defineProps(["post"]);
 const content = ref(props.post.content);
+const scheme = ref(themeFromSourceColor(0).schemes.light);
+
 const emit = defineEmits(["editPost", "refreshPosts"]);
+
+const assignButtonColor = (button: HTMLElement) => {
+  if (button.classList.contains("button-error")) {
+    button.style.backgroundColor = hexFromArgb(scheme.value.error);
+    button.style.color = hexFromArgb(scheme.value.onError);
+  } else if (button.classList.contains("pure-button-primary")) {
+    button.style.backgroundColor = hexFromArgb(scheme.value.primary);
+    button.style.color = hexFromArgb(scheme.value.onPrimary);
+  } else {
+    button.style.backgroundColor = hexFromArgb(scheme.value.secondary);
+    button.style.color = hexFromArgb(scheme.value.onSecondary);
+  }
+};
+
+async function setupPostTheme() {
+  const albumArt = document.getElementById("album-art-" + props.post._id) as HTMLImageElement;
+  const theme = await themeFromImage(albumArt);
+  const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  scheme.value = systemDark ? theme.schemes.dark : theme.schemes.light;
+
+  const post = document.getElementById("post-" + props.post._id)!;
+  post.style.backgroundColor = hexFromArgb(scheme.value.primaryContainer);
+  post.style.color = hexFromArgb(scheme.value.onPrimaryContainer);
+
+  Array.from(post.getElementsByClassName("btn-small")).map((el) => assignButtonColor(el as HTMLElement));
+}
+
+// onMounted(() => {
+//   void setupPostTheme();
+// });
 
 const editPost = async (content: string) => {
   try {
@@ -35,7 +68,7 @@ const editPost = async (content: string) => {
 
 <style scoped>
 form {
-  background-color: var(--base-bg);
+  background-color: rgba(0, 0, 0, 0);
   display: flex;
   flex-direction: column;
   gap: 0.5em;

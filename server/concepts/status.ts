@@ -4,14 +4,14 @@ import { NotAllowedError } from "./errors";
 
 export interface StatusDoc extends BaseDoc {
   user: ObjectId;
-  content: string;
+  songId: string;
 }
 
 export default class StatusConcept {
   public readonly statuses = new DocCollection<StatusDoc>("statuses");
 
-  async create(user: ObjectId, content: string) {
-    const _id = await this.statuses.createOne({ user, content });
+  async create(user: ObjectId, songId: string) {
+    const _id = await this.statuses.createOne({ user, songId });
     return { msg: "Status created!", status: await this.statuses.readOne({ _id }) };
   }
 
@@ -48,7 +48,7 @@ export default class StatusConcept {
   private sanitizeUpdate(update: Partial<StatusDoc>) {
     // Make sure the update cannot change the user.
     for (const key in update) {
-      if (key !== "content") {
+      if (key !== "songId") {
         throw new NotAllowedError(`Cannot update '${key}' field!`);
       }
     }

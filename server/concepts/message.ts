@@ -4,15 +4,15 @@ import { NotAllowedError } from "./errors";
 
 export interface MessageDoc extends BaseDoc {
   sender: ObjectId;
-  recipients: Array<ObjectId>;
+  recipient: ObjectId;
   content: string;
 }
 
 export default class MessageConcept {
   public readonly messages = new DocCollection<MessageDoc>("messages");
 
-  async sendMessage(sender: ObjectId, recipients: Array<ObjectId>, content: string) {
-    const _id = await this.messages.createOne({ sender, recipients, content });
+  async sendMessage(sender: ObjectId, recipient: ObjectId, content: string) {
+    const _id = await this.messages.createOne({ sender, recipient, content });
     return { msg: "Message sent!", message: await this.messages.readOne({ _id }) };
   }
 
@@ -26,7 +26,7 @@ export default class MessageConcept {
 
   async getByUser(user: ObjectId) {
     return this.getMessages({
-      $or: [{ sender: user }, { recipients: user }],
+      $or: [{ sender: user }, { recipient: user }],
     });
   }
 
@@ -53,7 +53,7 @@ export default class MessageConcept {
   }
 
   private sanitizeUpdate(update: Partial<MessageDoc>) {
-    // Make sure the update cannot change the sender and recipients.
+    // Make sure the update cannot change the sender and recipient.
     for (const key in update) {
       if (key !== "content") {
         throw new NotAllowedError(`Cannot update '${key}' field!`);

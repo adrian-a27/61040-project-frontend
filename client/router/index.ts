@@ -4,8 +4,11 @@ import { createRouter, createWebHistory } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import HomeView from "../views/HomeView.vue";
 import LoginView from "../views/LoginView.vue";
+import MessagesView from "../views/MessagesView.vue";
+import MusicPlayerView from "../views/MusicPlayerView.vue";
 import NotFoundView from "../views/NotFoundView.vue";
-import SettingView from "../views/SettingView.vue";
+import SettingsView from "../views/SettingsView.vue";
+import ConversationView from "../views/ConversationView.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -14,11 +17,12 @@ const router = createRouter({
       path: "/",
       name: "Home",
       component: HomeView,
+      meta: { requiresAuth: true },
     },
     {
-      path: "/setting",
+      path: "/settings",
       name: "Settings",
-      component: SettingView,
+      component: SettingsView,
       meta: { requiresAuth: true },
     },
     {
@@ -34,6 +38,24 @@ const router = createRouter({
       },
     },
     {
+      path: "/player",
+      name: "Music Player",
+      component: MusicPlayerView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/messages",
+      name: "Messages",
+      component: MessagesView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/messages/:username",
+      name: "Conversation",
+      component: ConversationView,
+      meta: { requiresAuth: true },
+    },
+    {
       path: "/:catchAll(.*)",
       name: "not-found",
       component: NotFoundView,
@@ -44,7 +66,7 @@ const router = createRouter({
 /**
  * Navigation guards to prevent user from accessing wrong pages.
  */
-router.beforeEach((to, from) => {
+router.beforeEach(async (to, from) => {
   const { isLoggedIn } = storeToRefs(useUserStore());
 
   if (to.meta.requiresAuth && !isLoggedIn.value) {

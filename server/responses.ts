@@ -1,7 +1,7 @@
 import { User } from "./app";
 import { FollowRequestDoc } from "./concepts/followGraph";
-import { AlreadyFriendsError, FriendNotFoundError, FriendRequestAlreadyExistsError, FriendRequestNotFoundError } from "./concepts/friend";
 import { PostAuthorNotMatchError, PostDoc } from "./concepts/post";
+import { StatusDoc } from "./concepts/status";
 import { Router } from "./framework/router";
 
 /**
@@ -29,6 +29,14 @@ export default class Responses {
   }
 
   /**
+   * Same as {@link post} but for an array of StatusDoc for improved performance.
+   */
+  static async statuses(statuses: StatusDoc[]) {
+    const users = await User.idsToUsernames(statuses.map((status) => status.user));
+    return statuses.map((status, i) => ({ ...status, user: users[i] }));
+  }
+
+  /**
    * Convert FriendRequestDoc into more readable format for the frontend
    * by converting the ids into usernames.
    */
@@ -44,24 +52,4 @@ export default class Responses {
 Router.registerError(PostAuthorNotMatchError, async (e) => {
   const username = (await User.getUserById(e.author)).username;
   return e.formatWith(username, e._id);
-});
-
-Router.registerError(FriendRequestAlreadyExistsError, async (e) => {
-  const [user1, user2] = await Promise.all([User.getUserById(e.from), User.getUserById(e.to)]);
-  return e.formatWith(user1.username, user2.username);
-});
-
-Router.registerError(FriendNotFoundError, async (e) => {
-  const [user1, user2] = await Promise.all([User.getUserById(e.user1), User.getUserById(e.user2)]);
-  return e.formatWith(user1.username, user2.username);
-});
-
-Router.registerError(FriendRequestNotFoundError, async (e) => {
-  const [user1, user2] = await Promise.all([User.getUserById(e.from), User.getUserById(e.to)]);
-  return e.formatWith(user1.username, user2.username);
-});
-
-Router.registerError(AlreadyFriendsError, async (e) => {
-  const [user1, user2] = await Promise.all([User.getUserById(e.user1), User.getUserById(e.user2)]);
-  return e.formatWith(user1.username, user2.username);
 });

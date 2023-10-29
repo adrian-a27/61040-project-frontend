@@ -43,6 +43,7 @@
     "vue-tsc": "^1.8.11"
   },
   "dependencies": {
+    "@material/material-color-utilities": "^0.2.7",
     "@spotify/web-api-ts-sdk": "^1.1.2",
     "connect-mongo": "^5.0.0",
     "cors": "^2.8.5",
