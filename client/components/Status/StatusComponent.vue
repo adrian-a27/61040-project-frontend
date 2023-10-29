@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { useUserStore } from "@/stores/user";
 import { fetchy } from "@/utils/fetchy";
 import { hexFromArgb, themeFromImage, themeFromSourceColor } from "@material/material-color-utilities";
-import { storeToRefs } from "pinia";
 import { onMounted, ref } from "vue";
 
 const props = defineProps(["status", "track"]);
 const emit = defineEmits(["editPost", "refreshPosts", "playingAudio"]);
 const playbackButtonIcon = ref("play_arrow");
 const scheme = ref(themeFromSourceColor(0).schemes.light);
-const { currentUsername } = storeToRefs(useUserStore());
 
 const assignButtonColor = (button: HTMLElement) => {
   if (button.classList.contains("button-error")) {
@@ -37,7 +34,7 @@ async function setupPostTheme() {
   Array.from(status.getElementsByClassName("btn-small")).map((el) => assignButtonColor(el as HTMLElement));
   const playbackButton: HTMLButtonElement = document.querySelector("#playback-button-" + props.status._id)!;
 
-  const userIcon: HTMLElement = Array.from(status.getElementsByClassName("user-icon"))[0];
+  const userIcon = Array.from(status.getElementsByClassName("user-icon"))[0] as HTMLDivElement;
   userIcon.style.backgroundColor = hexFromArgb(scheme.value.tertiaryContainer);
   userIcon.style.color = hexFromArgb(scheme.value.onTertiaryContainer);
 

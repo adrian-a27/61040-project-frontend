@@ -25,8 +25,6 @@ const requestsFrom = ref(new Set<string>());
 
 const focusedUser = ref("");
 
-const { updateUser, updateSession } = useUserStore();
-
 const getAllUsers = async () => {
   let userVals;
   try {
@@ -35,7 +33,7 @@ const getAllUsers = async () => {
     return;
   }
 
-  allUsers.value = userVals.filter((u) => u.username !== currentUsername.value);
+  allUsers.value = userVals.filter((u: User) => u.username !== currentUsername.value);
 };
 
 const getFriends = async () => {
